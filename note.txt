@@ -1,0 +1,24 @@
+const HandleSignUp = async () => {
+    if (!name || !email || !password || !gender || !address) {
+      Alert.alert("Sign up", "Please fill all the fields!");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await createUser(email, password);
+      setLoading(false);
+
+      await setDoc(doc(db, "users", response.user.uid), {
+        name,
+        email,
+        gender,
+        address,
+        userId: response.user.uid,
+      });
+      // Alert.alert("Sign up", "Account created successfully!");
+    } catch (error) {
+      setLoading(false);
+      Alert.alert("Sign up", "Email Already exist..!");
+    }
+  };

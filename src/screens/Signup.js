@@ -12,7 +12,14 @@ import { useNavigation } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import InputField from "../components/InputField";
 import PrimaryBtn from "../components/PrimaryBtn";
-import { doc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
 import { AuthContext } from "../context/AuthProvider";
 import { db } from "../firebase/firebase.config";
 
@@ -25,6 +32,7 @@ export default function Signup() {
   const [address, setAddress] = useState("");
   const [gender, setGender] = useState("");
   const [loading, setLoading] = useState(false);
+
   const HandleSignUp = async () => {
     if (!name || !email || !password || !gender || !address) {
       Alert.alert("Sign up", "Please fill all the fields!");
@@ -33,8 +41,18 @@ export default function Signup() {
 
     try {
       setLoading(true);
+
+      // Check if the username is available
+      const isUsernameAvailable = await checkUsernameAvailability(name);
+
+      if (!isUsernameAvailable) {
+        setLoading(false);
+        Alert.alert("Sign up", "Username must be unique !");
+        return;
+      }
+
+      // Username is available, proceed with user creation
       const response = await createUser(email, password);
-      setLoading(false);
       await setDoc(doc(db, "users", response.user.uid), {
         name,
         email,
@@ -42,12 +60,26 @@ export default function Signup() {
         address,
         userId: response.user.uid,
       });
-      // Alert.alert("Sign up", "Account created successfully!");
+      setLoading(false);
+      Alert.alert("Sign up", "Account created successfully!");
     } catch (error) {
       setLoading(false);
-      Alert.alert("Sign up", "Email Already exist..!");
+      Alert.alert("Sign up", "Error: email already in use !");
     }
   };
+
+  async function checkUsernameAvailability(username) {
+    // console.log("checkUsernameAvailability username:", username);
+    try {
+      const q = query(collection(db, "users"), where("name", "==", username));
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.empty; // If empty, username is available
+    } catch (error) {
+      //  console.error("Error checking username availability:", error);
+      throw new Error("Error checking username availability");
+    }
+  }
+
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View style={styles.container}>
